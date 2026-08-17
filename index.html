@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat · Channels & History</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <style>
+    /* style.css */
+    :root {
+      --sidebar-width: 260px;
+      --header-height: 64px;
+    }
+    body {
+      background: #f4f6fa;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+    .sidebar {
+      width: var(--sidebar-width);
+      background: #ffffff;
+      border-right: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.02);
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 20px 16px 12px;
+      border-bottom: 1px solid #f0f2f5;
+    }
+    .sidebar-header h5 {
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-header h5 i {
+      color: #3b82f6;
+    }
+    .channel-list {
+      flex: 1;
+      padding: 12px 10px;
+      overflow-y: auto;
+    }
+    .channel-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+      color: #1e293b;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .channel-item i {
+      width: 24px;
+      color: #64748b;
+      margin-right: 12px;
+      font-size: 1rem;
+    }
+    .channel-item:hover {
+      background: #f1f5f9;
+    }
+    .channel-item.active {
+      background: #eef2ff;
+      color: #2563eb;
+    }
+    .channel-item.active i {
+      color: #2563eb;
+    }
+    .channel-item .badge {
+      margin-left: auto;
+      background: #e2e8f0;
+      color: #1e293b;
+      font-weight: 500;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 30px;
+    }
+    .sidebar-footer {
+      padding: 16px 14px;
+      border-top: 1px solid #f0f2f5;
+    }
+    .sidebar-footer .btn {
+      font-size: 0.85rem;
+      width: 100%;
+      border-radius: 30px;
+    }
+    /* ---------- MAIN CHAT ---------- */
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #ffffff;
+    }
+    .chat-header {
+      padding: 16px 28px;
+      border-bottom: 1px solid #edf2f7;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .chat-header h4 {
+      font-weight: 600;
+      color: #0f172a;
+      margin: 0;
+    }
+    .chat-header .channel-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .chat-header .channel-actions .btn-sm {
+      border-radius: 40px;
+      font-size: 0.8rem;
+    }
+    
+    .messages-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px;
+      background: #fafcff;
+      display: flex;
+      flex-direction: column;
+    }
+    .message-bubble {
+      max-width: 80%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      margin-bottom: 16px;
+      word-wrap: break-word;
+      line-height: 1.5;
+      position: relative;
+      animation: fadeSlide 0.2s ease-out;
+    }
+    .message-bubble.user {
+      align-self: flex-end;
+      background: #2563eb;
+      color: white;
+      border-bottom-right-radius: 6px;
+    }
+    .message-bubble.ai {
+      align-self: flex-start;
+      background: #f1f5f9;
+      color: #0f172a;
+      border-bottom-left-radius: 6px;
+    }
+    .message-bubble .msg-time {
+      font-size: 0.65rem;
+      opacity: 0.6;
+      margin-top: 6px;
+      display: block;
+    }
+    .message-bubble.user .msg-time {
+      color: rgba(255,255,255,0.75);
+    }
+    .message-bubble.ai .msg-time {
+      color: #475569;
+    }
+    @keyframes fadeSlide {
+      0% { opacity: 0.3; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .empty-state {
+      text-align: center;
+      color: #94a3b8;
+      margin-top: 40px;
+    }
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    /* input area */
+    .input-area {
+      border-top: 1px solid #edf2f7;
+      padding: 16px 28px 24px;
+      background: #ffffff;
+      flex-shrink: 0;
+    }
+    .input-area .input-group {
+      background: #f8fafc;
+      border-radius: 60px;
+      border: 1px solid #e2e8f0;
+      transition: 0.2s;
+    }
+    .input-area .input-group:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .input-area textarea {
+      border: none;
+      background: transparent;
+      resize: none;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      height: 52px;
+      max-height: 120px;
+    }
+    .input-area textarea:focus {
+      outline: none;
+      box-shadow: none;
+    }
+    .input-area .btn-send {
+      border-radius: 60px;
+      padding: 0 24px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      font-weight: 500;
+      transition: 0.15s;
+    }
+    .input-area .btn-send:hover {
+      background: #1d4ed8;
+    }
+    .input-area .btn-send:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .token-hint {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      padding: 4px 12px 0;
+    }
+    
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* responsive */
+    @media (max-width: 640px) {
+      .sidebar { width: 200px; }
+      .messages-wrapper { padding: 16px; }
+      .input-area { padding: 12px 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h5><i class="fas fa-comment-dots"></i> Channels</h5>
+    </div>
+    <div class="channel-list" id="channelList">
+
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-outline-primary" id="addChannelBtn">
+        <i class="fas fa-plus-circle me-1"></i> New channel
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="main-chat">
+    <div class="chat-header">
+      <h4 id="currentChannelTitle"># general</h4>
+      <div class="channel-actions">
+        <button class="btn btn-outline-danger btn-sm" id="deleteChannelBtn" title="Delete channel">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="clearHistoryBtn" title="Clear messages">
+          <i class="fas fa-eraser"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="messages-wrapper" id="messagesWrapper">
+      <!-- messages render here -->
+      <div class="empty-state" id="emptyState">
+        <i class="fas fa-comment"></i>
+        <p>No messages yet · start a conversation</p>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-group">
+        <textarea id="messageInput" rows="1" placeholder="Ask something..." class="form-control"></textarea>
+        <button class="btn btn-send" id="sendBtn"><i class="fas fa-paper-plane me-1"></i> Send</button>
+      </div>
+      <div class="token-hint">
+        <i class="fas fa-key me-1"></i> HF_TOKEN set in JS (replace manually)
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- script.js -->
+<script>
+  (function() {
+    'use strict';
+
+    let HF_TOKEN = ''; // <-- paste your token here or use the prompt below
+    
+    if (!HF_TOKEN) {
+      const userToken = prompt('🔑 Please enter your Hugging Face token (HF_TOKEN):');
+      if (userToken) HF_TOKEN = userToken.trim();
+    }
+
+    const API_URL = 'https://router.huggingface.co/v1/chat/completions';
+    const MODEL = 'deepseek-ai/DeepSeek-V4-Flash-0731:novita';
+
+    
+    let channels = [];         
+    let currentChannelId = null;
+
+    
+    const channelListEl = document.getElementById('channelList');
+    const messagesWrapper = document.getElementById('messagesWrapper');
+    const emptyState = document.getElementById('emptyState');
+    const currentTitle = document.getElementById('currentChannelTitle');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const addChannelBtn = document.getElementById('addChannelBtn');
+    const deleteChannelBtn = document.getElementById('deleteChannelBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+    
+    function generateId() {
+      return Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+    }
+
+    function getCurrentChannel() {
+      return channels.find(c => c.id === currentChannelId) || null;
+    }
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem('ai_chat_channels', JSON.stringify(channels));
+        localStorage.setItem('ai_chat_current', currentChannelId);
+      } catch (e) { /* ignore */ }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const stored = localStorage.getItem('ai_chat_channels');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length) {
+            channels = parsed;
+          } else {
+            
+            createDefaultChannel();
+          }
+        } else {
+          createDefaultChannel();
+        }
+        const current = localStorage.getItem('ai_chat_current');
+        if (current && channels.some(c => c.id === current)) {
+          currentChannelId = current;
+        } else {
+          currentChannelId = channels[0]?.id || null;
+        }
+      } catch (e) {
+        createDefaultChannel();
+        currentChannelId = channels[0]?.id || null;
+      }
+    }
+
+    function createDefaultChannel() {
+      channels = [{
+        id: generateId(),
+        name: 'general',
+        messages: []
+      }];
+    }
+
+    
+    function renderChannels() {
+      if (!channelListEl) return;
+      channelListEl.innerHTML = '';
+      channels.forEach(ch => {
+        const div = document.createElement('div');
+        div.className = `channel-item${ch.id === currentChannelId ? ' active' : ''}`;
+        div.dataset.id = ch.id;
+        const msgCount = ch.messages ? ch.messages.length : 0;
+        div.innerHTML = `
+          <i class="fas fa-hashtag"></i>
+          <span>${ch.name}</span>
+          <span class="badge">${msgCount}</span>
+        `;
+        div.addEventListener('click', () => {
+          if (currentChannelId !== ch.id) {
+            currentChannelId = ch.id;
+            saveToLocalStorage();
+            renderAll();
+          }
+        });
+        channelListEl.appendChild(div);
+      });
+    }
+
+    function renderMessages() {
+      const channel = getCurrentChannel();
+      if (!channel) {
+        messagesWrapper.innerHTML = `<div class="empty-state"><i class="fas fa-comment"></i><p>Select a channel</p></div>`;
+        return;
+      }
+      const msgs = channel.messages || [];
+      if (msgs.length === 0) {
+        messagesWrapper.innerHTML = `<div class="empty-state"><i class="fas fa-comment"></i><p>No messages yet · start a conversation</p></div>`;
+        return;
+      }
+      let html = '';
+      msgs.forEach(msg => {
+        const role = msg.role === 'user' ? 'user' : 'ai';
+        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+        html += `<div class="message-bubble ${role}">
+          ${msg.content}
+          <span class="msg-time">${time}</span>
+        </div>`;
+      });
+      messagesWrapper.innerHTML = html;
+      
+      messagesWrapper.scrollTop = messagesWrapper.scrollHeight;
+    }
+
+    function renderCurrentTitle() {
+      const ch = getCurrentChannel();
+      currentTitle.textContent = ch ? `# ${ch.name}` : '# no channel';
+    }
+
+    function renderAll() {
+      renderChannels();
+      renderCurrentTitle();
+      renderMessages();
+      
+      const channel = getCurrentChannel();
+      if (channel && channel.messages && channel.messages.length > 0) {
+        // emptyState hidden by messages
+      }
+      
+      deleteChannelBtn.disabled = channels.length <= 1;
+    }
+
+    function addChannel() {
+      let name = prompt('Enter new channel name:');
+      if (name === null) return;
+      name = name.trim() || 'untitled';
+    
+      const existing = channels.map(c => c.name.toLowerCase());
+      if (existing.includes(name.toLowerCase())) {
+        alert('Channel name already exists.');
+        return;
+      }
+      const newCh = {
+        id: generateId(),
+        name: name,
+        messages: []
+      };
+      channels.push(newCh);
+      currentChannelId = newCh.id;
+      saveToLocalStorage();
+      renderAll();
+    }
+
+    function deleteCurrentChannel() {
+      if (channels.length <= 1) {
+        alert('Cannot delete the last channel.');
+        return;
+      }
+      const ch = getCurrentChannel();
+      if (!ch) return;
+      if (!confirm(`Delete channel "#${ch.name}" and all messages?`)) return;
+      channels = channels.filter(c => c.id !== currentChannelId);
+      
+      currentChannelId = channels[0]?.id || null;
+      saveToLocalStorage();
+      renderAll();
+    }
+
+    function clearCurrentHistory() {
+      const ch = getCurrentChannel();
+      if (!ch) return;
+      if (!confirm(`Clear all messages in "#${ch.name}"?`)) return;
+      ch.messages = [];
+      saveToLocalStorage();
+      renderAll();
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      const channel = getCurrentChannel();
+      if (!channel) {
+        alert('No channel selected.');
+        return;
+      }
+      if (!HF_TOKEN) {
+        alert('HF_TOKEN is not set. Please refresh and enter your token.');
+        return;
+      }
+
+      channel.messages.push({
+        role: 'user',
+        content: text,
+        timestamp: Date.now()
+      });
+      saveToLocalStorage();
+      renderAll();
+      messageInput.value = '';
+      sendBtn.disabled = true;
+
+      const history = channel.messages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${HF_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messages: history,
+            model: MODEL,
+            stream: false
+          })
+        });
+
+        if (!response.ok) {
+          let errMsg = `API error (${response.status})`;
+          try {
+            const errJson = await response.json();
+            errMsg = errJson.error?.message || errJson.error || errMsg;
+          } catch (_) {}
+          throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        const reply = data?.choices?.[0]?.message?.content;
+        if (reply) {
+          channel.messages.push({
+            role: 'assistant',
+            content: reply,
+            timestamp: Date.now()
+          });
+          saveToLocalStorage();
+          renderAll();
+        } else {
+          throw new Error('No reply from model.');
+        }
+      } catch (error) {
+        alert(`❌ Error: ${error.message || 'Unknown error'}`);
+        
+      } finally {
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    addChannelBtn.addEventListener('click', addChannel);
+    deleteChannelBtn.addEventListener('click', deleteCurrentChannel);
+    clearHistoryBtn.addEventListener('click', clearCurrentHistory);
+
+    loadFromLocalStorage();
+    if (!channels.length) createDefaultChannel();
+    if (!currentChannelId && channels.length) currentChannelId = channels[0].id;
+    renderAll();
+
+    if (!HF_TOKEN) {
+      setTimeout(() => {
+        const token = prompt('🔑 Please enter your Hugging Face token (HF_TOKEN):');
+        if (token) HF_TOKEN = token.trim();
+      }, 300);
+    }
+
+  })();
+</script>
+</body>
+</html>
